@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Busca de Preço (via Function – robusto)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Busca de Preço por Município</h1>
+
+  <label for="city">Município:</label>
+  <select id="city">
+    <option value="-9.6432331,-35.7190686">Maceió</option>
+    <option value="-9.751419,-36.659076">Arapiraca</option>
+    <option value="-9.407651,-36.300283">Palmeira dos Índios</option>
+  </select>
+
+  <button id="btn-scan">Iniciar Scanner</button>
+  <div id="interactive"></div>
+
+  <label for="barcode">Código de barras:</label>
+  <input id="barcode" type="text" placeholder="Digite ou escaneie..." />
+  <button id="btn-search">Pesquisar Preço</button>
+
+  <div id="result"></div>
+
+  <!-- Quagga2 via CDN -->
+  <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
+  <script>
+    // ===== Scanner Quagga2 =====
+    const quaggaConfig = {
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: document.querySelector('#interactive'),
+        constraints: { facingMode: "environment", width:{min:640}, height:{min:480} }
+      },
+      decoder: { readers: ["ean_reader","ean_8_reader","upc_reader","code_128_reader"] },
+      locate: true,
+      frequency: 10,
+      numOfWorkers: navigator.hardwareConcurrency||4
+    };
+    let scanning = false;
+    const btnScan = document.getElementById('btn-scan');
+    const barcodeInput = document.getElementById('barcode');
+
+    btnScan.addEventListener('click', () => {
+      if (!scanning) {
+        Quagga.init(quaggaConfig, err => {
+          if (err) { console.error(err); alert("Falha ao acessar a câmera."); return; }
+          Quagga.start();
+          scanning = true;
+          btnScan.textContent = "Parar Scanner";
+        });
+        Quagga.onDetected(d => {
+          if (d.codeResult && d.codeResult.code) {
+            barcodeInput.value = d.codeResult.code;
+            stopScanner();
+          }
+        });
+      } else {
+        stopScanner();
+      }
+    });
+
+    function stopScanner() {
+      Quagga.offDetected();
+      Quagga.stop();
+      scanning = false;
+      btnScan.textContent = "Iniciar Scanner";
+      document.querySelector('#interactive').innerHTML = "";
+    }
+
+    // ===== Busca robusta via Function =====
+    document.getElementById('btn-search').addEventListener('click', async () => {
+      const code = barcodeInput.value.trim();
+      if (!code) {
+        alert("Informe ou escaneie o código de barras!");
+        return;
+      }
+      const city = document.getElementById('city').value;
+      const resDiv = document.getElementById('result');
+      resDiv.innerHTML = `<p>Buscando…</p>`;
+
+      try {
+        const resp = await fetch("/.netlify/functions/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ codigoDeBarras: code, city })
+        });
+
+        // 1) Leia como texto
+        const text = await resp.text();
+
+        // 2) Detecta resposta vazia
+        if (!text.trim()) {
+          resDiv.innerHTML = `<p class="error">Resposta vazia do servidor (HTTP ${resp.status})</p>`;
+          return;
+        }
+
+        // 3) Se começar com '<', é HTML (provável 404)
+        if (text.trim().startsWith("<")) {
+          resDiv.innerHTML = `<p class="error">Resposta inesperada (HTML):<br>${text.slice(0,200)}…</p>`;
+          return;
+        }
+
+        // 4) Parse seguro do JSON
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          resDiv.innerHTML = `<p class="error">JSON inválido:<br>${text}</p>`;
+          return;
+        }
+
+        // 5) Se HTTP erro
+        if (!resp.ok) {
+          resDiv.innerHTML = `<p class="error">Erro ${resp.status}: ${data.error || JSON.stringify(data)}</p>`;
+          return;
+        }
+
+        // 6) Sem resultados
+        if (!Array.isArray(data) || data.length === 0) {
+          resDiv.innerHTML = `<p>Nenhum resultado encontrado.</p>`;
+          return;
+        }
+
+        // 7) Renderização dos resultados
+        const total    = data.length;
+        const minEntry = data.reduce((a,b) => b.valMinimoVendido < a.valMinimoVendido ? b : a, data[0]);
+        const maxEntry = data.reduce((a,b) => b.valMaximoVendido > a.valMaximoVendido ? b : a, data[0]);
+
+        let html = `<div class="summary">${total} estabelecimento${total>1?'s':''} encontrado${total>1?'s':''}</div>`;
+        for (const [label,e] of [["Menor Preço", minEntry], ["Maior Preço", maxEntry]]) {
+          const price  = label==="Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
+          const name   = e.nomFantasia || e.nomRazaoSocial || "—";
+          const bairro = e.nomBairro || "—";
+          const mapL   = `https://www.google.com/maps/search/?api=1&query=${e.numLatitude},${e.numLongitude}`;
+          const dirL   = `https://www.google.com/maps/dir/?api=1&destination=${e.numLatitude},${e.numLongitude}`;
+          const imgUrl = e.codGetin
+            ? `https://cdn-cosmos.bluesoft.com.br/products/${e.codGetin}`
+            : "";
+
+          html += `
+            <div class="card">
+              <h2>${label}</h2>
+              <p><strong>Preço:</strong> R$ ${price.toFixed(2)}</p>
+              <p><strong>Estabelecimento:</strong> ${name}</p>
+              <p><strong>Bairro:</strong> ${bairro}</p>
+              <p>
+                <a href="${mapL}" target="_blank">Ver no mapa</a>
+                <a href="${dirL}" target="_blank">Como chegar</a>
+              </p>
+              ${imgUrl ? `<img src="${imgUrl}" alt="Imagem do produto" />` : ""}
+            </div>`;
+        }
+        resDiv.innerHTML = html;
+      } catch (err) {
+        console.error("Erro na busca:", err);
+        resDiv.innerHTML = `<p class="error">Falha de rede: ${err.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>
