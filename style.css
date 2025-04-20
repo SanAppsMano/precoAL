@@ -36,8 +36,10 @@ label, select, input, button {
 #interactive { position: relative; width: 100%; margin-bottom: .75em; }
 #interactive video { width: 100%; }
 
-/* Loading overlay visible only when not hidden */
-#loading:not([hidden]) {
+/* Loading overlay hidden by default */
+.loading-overlay { display: none; }
+/* Show overlay when .show class is added */
+.loading-overlay.show {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(255,255,255,0.8);
@@ -58,6 +60,12 @@ label, select, input, button {
   margin-bottom: .5em;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Update-state button style */
+#btn-search.update-state {
+  font-style: italic;
+  color: #d35400;
+}
 
 .error { color: red; }
 
