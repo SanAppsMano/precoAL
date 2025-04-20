@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Busca de Preço por Município</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -28,6 +29,16 @@
   <div id="history">
     <ul id="history-list"></ul>
     <button id="clear-history">Limpar histórico</button>
+  </div>
+
+  <!-- Modal de detalhes -->
+  <div id="history-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <img id="modal-img" src="" alt="Produto"/>
+      <h3 id="modal-name"></h3>
+      <div id="modal-cards"></div>
+    </div>
   </div>
 
   <!-- Quagga2 via CDN -->
