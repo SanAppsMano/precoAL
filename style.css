@@ -19,7 +19,6 @@ label, select, input, button {
   height: auto;
   margin-bottom: .5em;
 }
-
 #interactive video {
   width: 100%;
 }
@@ -35,19 +34,17 @@ label, select, input, button {
   padding: 1em;
   margin-bottom: 1em;
 }
-
-.card h2 {
-  margin: 0 0 .5em;
-}
-
-.card p {
-  margin: .3em 0;
-}
-
+.card h2 { margin: 0 0 .5em; }
+.card p { margin: .3em 0; }
 .card img {
   max-width: 100%;
   margin-top: .5em;
   display: block;
+}
+.card a {
+  margin-right: .5em;
+  color: #0066cc;
+  text-decoration: none;
 }
 
 .error {
@@ -60,23 +57,19 @@ label, select, input, button {
   border-top: 1px solid #ddd;
   padding-top: 1em;
 }
-
 #history-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-
 #history-list li {
   padding: .3em 0;
   cursor: pointer;
   color: #0066cc;
 }
-
 #history-list li:hover {
   text-decoration: underline;
 }
-
 #clear-history {
   margin-top: .5em;
   background: #f44336;
