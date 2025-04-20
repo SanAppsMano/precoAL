@@ -3,34 +3,20 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Busca de Preço</title>
+  <title>Busca de Preço por Município</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Busca de Preço</h1>
+  <h1>Busca de Preço por Município</h1>
 
-  <div class="location-choice">
-    <label><input type="radio" name="loc" value="city" checked> Escolher município</label>
-    <label><input type="radio" name="loc" value="gps"> Usar minha localização</label>
-  </div>
+  <label for="city">Município:</label>
+  <select id="city">
+    <option value="-9.6432331,-35.7190686">Maceió</option>
+    <option value="-9.751419,-36.659076">Arapiraca</option>
+    <option value="-9.407651,-36.300283">Palmeira dos Índios</option>
+  </select>
 
-  <div id="city-block">
-    <label for="city">Município:</label>
-    <select id="city">
-      <option value="-9.6432331,-35.7190686">Maceió</option>
-      <option value="-9.751419,-36.659076">Arapiraca</option>
-      <option value="-9.407651,-36.300283">Palmeira dos Índios</option>
-    </select>
-  </div>
-
-  <label>Raio de busca:</label>
-  <div class="radius-control">
-    <button type="button" class="radius-btn" data-value="5">Perto<br><small>5 km</small></button>
-    <button type="button" class="radius-btn active" data-value="15">Médio<br><small>15 km</small></button>
-    <button type="button" class="radius-btn" data-value="30">Distante<br><small>30 km</small></button>
-  </div>
-
-  <button type="button" id="btn-scan">Iniciar Scanner</button>
+  <button id="btn-scan">Iniciar Scanner</button>
   <div id="interactive"></div>
 
   <label for="barcode">Código de barras:</label>
@@ -42,24 +28,18 @@
     placeholder="Digite ou escaneie..."
   />
 
-  <button type="button" id="btn-search">Pesquisar Preço</button>
-
-  <!-- Loading overlay -->
-  <div id="loading" class="loading-overlay">
-    <div class="spinner"></div>
-    <span>Buscando...</span>
-  </div>
+  <button id="btn-search">Pesquisar Preço</button>
 
   <div id="result"></div>
 
   <h2>Histórico de buscas</h2>
   <div id="history">
     <ul id="history-list"></ul>
-    <button type="button" id="clear-history">Limpar histórico</button>
+    <button id="clear-history">Limpar histórico</button>
   </div>
 
   <!-- Quagga2 via CDN -->
   <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
-  <script src="app.js" defer></script>
+  <script src="app.js"></script>
 </body>
 </html>
