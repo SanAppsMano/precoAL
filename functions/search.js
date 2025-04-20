@@ -1,8 +1,12 @@
 // functions/search.js
 
 exports.handler = async (event) => {
-  // pré‑voo CORS
+  // Log the incoming event for debugging
+  console.log("Received event:", JSON.stringify(event));
+
+  // Handle CORS preflight
   if (event.httpMethod === "OPTIONS") {
+    console.log("Preflight request, returning CORS headers");
     return {
       statusCode: 204,
       headers: {
@@ -14,25 +18,41 @@ exports.handler = async (event) => {
   }
 
   try {
+    console.log("Parsing request body");
     const { codigoDeBarras, city } = JSON.parse(event.body);
-    const [latitude, longitude] = city.split(",").map(Number);
+    console.log("Parsed values:", { codigoDeBarras, city });
 
-    // Chama a API protegida
-    const resp = await fetch(
-      "http://api.sefaz.al.gov.br/sfz_nfce_api/api/public/consultarPrecosPorCodigoDeBarras",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "AppToken": process.env.APP_TOKEN,
-        },
-        body: JSON.stringify({ codigoDeBarras, dias: 3, latitude, longitude, raio: 15 }),
-      }
-    );
+    const [latitude, longitude] = city.split(",").map(Number);
+    console.log("Coordinates parsed:", { latitude, longitude });
+
+    const apiUrl = "http://api.sefaz.al.gov.br/sfz_nfce_api/api/public/consultarPrecosPorCodigoDeBarras";
+    console.log("Calling external API at:", apiUrl);
+
+    const resp = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "AppToken": process.env.APP_TOKEN,
+      },
+      body: JSON.stringify({
+        codigoDeBarras,
+        dias: 3,
+        latitude,
+        longitude,
+        raio: 15,
+      }),
+    });
+
+    console.log("External API response status:", resp.status, resp.statusText);
 
     const data = await resp.json();
+    console.log("External API returned data:", JSON.stringify(data));
+
+    const statusCode = resp.ok ? 200 : resp.status;
+    console.log("Returning status code:", statusCode);
+
     return {
-      statusCode: resp.ok ? 200 : resp.status,
+      statusCode,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
@@ -41,6 +61,7 @@ exports.handler = async (event) => {
     };
 
   } catch (err) {
+    console.error("Error in handler:", err);
     return {
       statusCode: 500,
       headers: {
