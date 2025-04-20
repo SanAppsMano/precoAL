@@ -2,6 +2,6 @@
   publish = "."
   functions = "functions"
 
-[functions]
-  # Aumenta timeout de 10s (padrão) para 30s para lidar com latências da API
-  timeout = 30
+# A configuração de timeout deve ser um objeto, conforme exigido pelo Netlify
+[functions.timeout]
+  default = 30  # aumenta timeout padrão de 10s para 30s
