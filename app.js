@@ -1,15 +1,14 @@
 window.addEventListener('DOMContentLoaded', () => {
   // Referências
-  const btnScan       = document.getElementById('btn-scan');
-  const btnSearch     = document.getElementById('btn-search');
-  const barcodeIn     = document.getElementById('barcode');
-  const clearBarcode  = document.getElementById('clear-barcode');
-  const citySel       = document.getElementById('city');
-  const resultDiv     = document.getElementById('result');
-  const ulHistory     = document.getElementById('history-list');
-  const btnClearHist  = document.getElementById('clear-history');
+  const btnScan      = document.getElementById('btn-scan');
+  const btnSearch    = document.getElementById('btn-search');
+  const barcodeIn    = document.getElementById('barcode');
+  const citySel      = document.getElementById('city');
+  const resultDiv    = document.getElementById('result');
+  const ulHistory    = document.getElementById('history-list');
+  const btnClearHist = document.getElementById('clear-history');
 
-  // --- Scanner Quagga2 ---
+  // === Scanner Quagga2 ===
   let scanning = false;
   const quaggaConfig = {
     inputStream: {
@@ -34,7 +33,6 @@ window.addEventListener('DOMContentLoaded', () => {
           Quagga.stop();
           scanning = false;
           btnScan.textContent = "Iniciar Scanner";
-          barcodeIn.dispatchEvent(new Event('input'));
         }
       });
     } else {
@@ -44,17 +42,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- Botão limpar campo de código ---
-  barcodeIn.addEventListener('input', () => {
-    clearBarcode.style.display = barcodeIn.value ? 'block' : 'none';
-  });
-  clearBarcode.addEventListener('click', () => {
-    barcodeIn.value = '';
-    clearBarcode.style.display = 'none';
-    barcodeIn.focus();
-  });
+  // === Auto‑select ao focar o campo ===
+  barcodeIn.addEventListener('focus', () => barcodeIn.select());
 
-  // --- Histórico em localStorage ---
+  // === Histórico via localStorage ===
   let historyData = [];
   function loadHistory() {
     const raw = localStorage.getItem("searchHistory");
@@ -87,12 +78,11 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!li) return;
     const item = historyData[li.dataset.index];
     barcodeIn.value = item.code;
-    clearBarcode.style.display = 'block';
-    citySel.value   = item.city;
+    citySel.value    = item.city;
     btnSearch.click();
   });
 
-  // --- Render de resultado estático ---
+  // === Render de resultado ===
   function renderResult({ productName, thumbnail, minEntry, maxEntry, total }) {
     let html = `
       <div class="product-summary">
@@ -129,7 +119,7 @@ window.addEventListener('DOMContentLoaded', () => {
     resultDiv.scrollIntoView({ behavior: 'smooth' });
   }
 
-  // --- Busca via Netlify Function ---
+  // === Busca via Netlify Function ===
   const FN_URL = `${window.location.origin}/.netlify/functions/search`;
   btnSearch.addEventListener('click', async () => {
     const code = barcodeIn.value.trim();
@@ -140,7 +130,7 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
       const resp = await fetch(FN_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ codigoDeBarras: code, city })
       });
       const text = await resp.text();
@@ -149,7 +139,7 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
       }
       const data = JSON.parse(text);
-      if (!resp.ok || !Array.isArray(data) || data.length === 0) {
+      if (!resp.ok || !Array.isArray(data)||data.length===0) {
         resultDiv.innerHTML = `<p class="error">Nenhum resultado encontrado.</p>`;
         return;
       }
@@ -173,7 +163,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // inicializa histórico
+  // Inicializa histórico
   loadHistory();
   renderHistory();
 });
