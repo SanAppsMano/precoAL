@@ -34,6 +34,7 @@ btnScan.addEventListener('click', () => {
     stopScanner();
   }
 });
+
 function stopScanner() {
   Quagga.offDetected();
   Quagga.stop();
@@ -61,22 +62,28 @@ function renderHistory() {
   const listEl = document.getElementById("history-list");
   const hist = loadHistory();
   listEl.innerHTML = hist.map(item => {
-    const date = new Date(item.when).toLocaleString("pt-BR");
-    const cityName = item.city.split(",")[1];
+    const date    = new Date(item.when).toLocaleString("pt-BR");
+    const cityName= item.city.split(",")[1];
+    const thumb   = item.thumbnail
+      ? `<img src="${item.thumbnail}" class="history-thumb" alt="Thumb"/>`
+      : "";
     return `<li data-code="${item.code}" data-city="${item.city}">
-      ${item.code} em ${cityName} (${date})
+      ${thumb}${item.code} em ${cityName} (${date})
     </li>`;
   }).join("");
 }
+
 document.getElementById("history-list").addEventListener("click", e => {
-  if (e.target.tagName === "LI") {
-    const code = e.target.dataset.code;
-    const city = e.target.dataset.city;
-    document.getElementById("barcode").value = code;
+  if (e.target.tagName === "LI" || e.target.closest("li")) {
+    const li   = e.target.closest("li");
+    const code = li.dataset.code;
+    const city = li.dataset.city;
+    barcodeInput.value = code;
     document.getElementById("city").value = city;
     document.getElementById("btn-search").click();
   }
 });
+
 document.getElementById("clear-history").addEventListener("click", () => {
   localStorage.removeItem("searchHistory");
   renderHistory();
@@ -87,10 +94,7 @@ const FN_URL = `${window.location.origin}/.netlify/functions/search`;
 
 document.getElementById('btn-search').addEventListener('click', async () => {
   const code = barcodeInput.value.trim();
-  if (!code) {
-    alert("Informe ou escaneie o código de barras!");
-    return;
-  }
+  if (!code) { alert("Informe ou escaneie o código de barras!"); return; }
 
   const city = document.getElementById('city').value;
   const resDiv = document.getElementById('result');
@@ -113,9 +117,8 @@ document.getElementById('btn-search').addEventListener('click', async () => {
       return;
     }
     let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
+    try { data = JSON.parse(text); }
+    catch {
       resDiv.innerHTML = `<p class="error">JSON inválido:<br>${text}</p>`;
       return;
     }
@@ -128,19 +131,21 @@ document.getElementById('btn-search').addEventListener('click', async () => {
       return;
     }
 
-    // renderiza resultados
+    // renderização dos resultados
     const total    = data.length;
     const minEntry = data.reduce((a,b)=> b.valMinimoVendido < a.valMinimoVendido ? b : a, data[0]);
     const maxEntry = data.reduce((a,b)=> b.valMaximoVendido > a.valMaximoVendido ? b : a, data[0]);
 
     let html = `<div class="summary">${total} estabelecimento${total>1?'s':''} encontrado${total>1?'s':''}</div>`;
     for (const [label,e] of [["Menor Preço", minEntry], ["Maior Preço", maxEntry]]) {
-      const price  = label==="Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
-      const name   = e.nomFantasia||e.nomRazaoSocial||"—";
-      const bairro = e.nomBairro||"—";
-      const mapL   = `https://www.google.com/maps/search/?api=1&query=${e.numLatitude},${e.numLongitude}`;
-      const dirL   = `https://www.google.com/maps/dir/?api=1&destination=${e.numLatitude},${e.numLongitude}`;
-      const imgUrl = e.codGetin ? `https://cdn-cosmos.bluesoft.com.br/products/${e.codGetin}` : "";
+      const price = label==="Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
+      const name  = e.nomFantasia||e.nomRazaoSocial||"—";
+      const bairro= e.nomBairro||"—";
+      const mapL  = `https://www.google.com/maps/search/?api=1&query=${e.numLatitude},${e.numLongitude}`;
+      const dirL  = `https://www.google.com/maps/dir/?api=1&destination=${e.numLatitude},${e.numLongitude}`;
+      const thumb = e.codGetin 
+        ? `https://cdn-cosmos.bluesoft.com.br/products/${e.codGetin}` 
+        : "";
 
       html += `
         <div class="card">
@@ -152,12 +157,20 @@ document.getElementById('btn-search').addEventListener('click', async () => {
             <a href="${mapL}" target="_blank">Ver no mapa</a>
             <a href="${dirL}" target="_blank">Como chegar</a>
           </p>
-          ${imgUrl?`<img src="${imgUrl}" alt="Imagem do produto"/>`:``}
+          ${thumb?`<img src="${thumb}" alt="Imagem do produto" />`:``}
         </div>`;
     }
 
-    // adiciona ao histórico e exibe resultados
-    addToHistory({ code, city, when: new Date().toISOString() });
+    // adiciona miniatura do primeiro item ao histórico
+    addToHistory({
+      code,
+      city,
+      when: new Date().toISOString(),
+      thumbnail: data[0].codGetin
+        ? `https://cdn-cosmos.bluesoft.com.br/products/${data[0].codGetin}`
+        : ""
+    });
+
     resDiv.innerHTML = html;
 
   } catch (err) {
@@ -166,5 +179,5 @@ document.getElementById('btn-search').addEventListener('click', async () => {
   }
 });
 
-// renderiza o histórico ao carregar a página
+// renderiza o histórico ao iniciar
 renderHistory();
