@@ -1,65 +1,158 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Busca de Preço</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Busca por Código de Barras com Câmera</title>
+  <style>
+    body { font-family: sans-serif; max-width: 400px; margin: 2em auto; }
+    button, input { width: 100%; padding: .5em; font-size: 1em; margin-bottom: .5em; box-sizing: border-box; }
+    #interactive { position: relative; width: 100%; height: auto; overflow: hidden; margin-bottom: .5em; }
+    #interactive video { width: 100%; }
+    #timer { font-size: .9em; color: #555; margin-bottom: .5em; }
+    #result .card { border: 1px solid #ccc; padding:1em; margin-bottom:1em; border-radius:4px; }
+    #result img { max-width:100%; margin-top:.5em; display:block; }
+    .message { padding:1em; background:#fffae6; border:1px solid #ffd24d; border-radius:4px; margin-bottom:1em; }
+  </style>
 </head>
 <body>
-  <h1>Busca de Preço</h1>
+  <h1>Buscar Preço por Escaneamento</h1>
 
-  <div class="location-choice">
-    <label><input type="radio" name="loc" value="city" checked> Escolher município</label>
-    <label><input type="radio" name="loc" value="gps"> Usar minha localização</label>
-  </div>
+  <button id="btn-scan">Iniciar Scanner</button>
+  <div id="interactive" class="viewport"></div>
 
-  <div id="city-block">
-    <label for="city">Município:</label>
-    <select id="city">
-      <option value="-9.6432331,-35.7190686">Maceió</option>
-      <option value="-9.751419,-36.659076">Arapiraca</option>
-      <option value="-9.407651,-36.300283">Palmeira dos Índios</option>
-    </select>
-  </div>
+  <input type="text" id="barcode" placeholder="Ou digite o código de barras..." />
+  <button id="btn-search">Pesquisar Preço</button>
 
-  <label>Raio de busca:</label>
-  <div class="radius-control">
-    <button type="button" class="radius-btn" data-value="5">Perto<br><small>5 km</small></button>
-    <button type="button" class="radius-btn active" data-value="15">Médio<br><small>15 km</small></button>
-    <button type="button" class="radius-btn" data-value="30">Distante<br><small>30 km</small></button>
-  </div>
-
-  <button type="button" id="btn-scan">Iniciar Scanner</button>
-  <div id="interactive"></div>
-
-  <label for="barcode">Código de barras:</label>
-  <input
-    id="barcode"
-    type="search"
-    inputmode="numeric"
-    pattern="[0-9]*"
-    placeholder="Digite ou escaneie..."
-  />
-
-  <button type="button" id="btn-search">Pesquisar Preço</button>
-
-  <!-- Loading overlay -->
-  <div id="loading" class="loading-overlay">
-    <div class="spinner"></div>
-    <span>Buscando...</span>
-  </div>
-
+  <div id="timer"></div>
   <div id="result"></div>
 
-  <h2>Histórico de buscas</h2>
-  <div id="history">
-    <ul id="history-list"></ul>
-    <button type="button" id="clear-history">Limpar histórico</button>
-  </div>
+  <script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js"></script>
+  <script>
+    const APP_TOKEN = 'e679e13f8bd7e315e865d2fbc7dda23a6b5a6b2d';
+    const API_URL   = 'http://api.sefaz.al.gov.br/sfz_nfce_api/api/public/consultarPrecosPorCodigoDeBarras';
+    const MAX_WAIT  = 10000; // 10 segundos
 
-  <!-- Quagga2 via CDN -->
-  <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
-  <script src="app.js" defer></script>
+    // Scanner Quagga
+    const btnScan     = document.getElementById('btn-scan');
+    const interactive = document.getElementById('interactive');
+    let scanning = false;
+
+    function startScanner() {
+      Quagga.init({
+        inputStream: { name:"Live", type:"LiveStream", target: interactive,
+                       constraints:{ facingMode:"environment" } },
+        decoder: { readers:["ean_reader","ean_8_reader","code_128_reader"] },
+        locate: true
+      }, err => {
+        if (err) { console.error(err); alert("Não foi possível acessar a câmera."); return; }
+        Quagga.start(); scanning = true; btnScan.textContent = "Parar Scanner";
+      });
+      Quagga.onDetected(({ codeResult }) => {
+        if (codeResult && codeResult.code) {
+          document.getElementById('barcode').value = codeResult.code;
+          stopScanner();
+        }
+      });
+    }
+
+    function stopScanner() {
+      Quagga.stop(); Quagga.offDetected(); scanning = false;
+      btnScan.textContent = "Iniciar Scanner";
+      interactive.innerHTML = "";
+    }
+
+    btnScan.addEventListener('click', () => {
+      scanning ? stopScanner() : startScanner();
+    });
+
+    // Busca na API
+    async function buscarPreco(barcode) {
+      const res = await fetch(API_URL, {
+        method: 'POST', headers: {
+          'Content-Type': 'application/json', 'AppToken': APP_TOKEN
+        }, body: JSON.stringify({
+          codigoDeBarras: barcode, dias: 3,
+          latitude: -9.6432331, longitude: -35.7190686, raio: 15
+        })
+      });
+      return res.json();
+    }
+
+    document.getElementById('btn-search').onclick = async () => {
+      const code     = document.getElementById('barcode').value.trim();
+      const out      = document.getElementById('result');
+      const timerDiv = document.getElementById('timer');
+      out.innerHTML  = '';
+      timerDiv.textContent = '';
+      if (!code) return alert('Informe ou escaneie o código de barras!');
+
+      const start = performance.now();
+      out.innerHTML = '<div class="message">Buscando… aguarde, isso pode levar alguns segundos.</div>';
+
+      try {
+        const data = await buscarPreco(code);
+        const elapsed = performance.now() - start;
+        timerDiv.textContent = `Tempo de resposta: ${elapsed.toFixed(0)} ms`;
+
+        if (!Array.isArray(data) || data.length === 0) {
+          if (elapsed > MAX_WAIT) {
+            out.innerHTML = `
+              <div class="message">
+                O serviço demorou mais que o esperado (${(elapsed/1000).toFixed(1)} s).<br>
+                Tente novamente mais tarde.
+              </div>
+            `;
+          } else {
+            out.innerHTML = `<div class="message">Nenhum resultado encontrado.</div>`;
+          }
+          return;
+        }
+
+        const minEntry = data.reduce((a,b) =>
+          (b.valMinimoVendido||Infinity) < (a.valMinimoVendido||Infinity) ? b : a
+        , data[0]);
+        const maxEntry = data.reduce((a,b) =>
+          (b.valMaximoVendido||-Infinity) > (a.valMaximoVendido||-Infinity) ? b : a
+        , data[0]);
+
+        function render(entry, label) {
+          const price = label==="Menor Preço"
+            ? Number(entry.valMinimoVendido).toFixed(2)
+            : Number(entry.valMaximoVendido).toFixed(2);
+          const name = entry.nomFantasia||entry.nomRazaoSocial||'—';
+          const lat  = entry.numLatitude, lng = entry.numLongitude;
+          const mapL = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+          const dirL = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+          const img  = entry.codGetin
+            ? `https://cdn-cosmos.bluesoft.com.br/products/${entry.codGetin}` : '';
+
+          return `
+            <div class="card">
+              <h2>${label}</h2>
+              <p><strong>Preço:</strong> R$ ${price}</p>
+              <p><strong>Estabelecimento:</strong> ${name}</p>
+              <p>
+                <a href="${mapL}" target="_blank">Ver no mapa</a> |
+                <a href="${dirL}" target="_blank">Como chegar</a>
+              </p>
+              ${img?`<img src="${img}" alt="Imagem do produto">`:''}
+            </div>
+          `;
+        }
+
+        out.innerHTML = render(minEntry,'Menor Preço') + render(maxEntry,'Maior Preço');
+      } catch (e) {
+        const elapsed = performance.now() - start;
+        timerDiv.textContent = `Tempo de resposta: ${elapsed.toFixed(0)} ms`;
+        out.innerHTML = `
+          <div class="message">
+            Ocorreu um erro ou o serviço demorou demais.<br>
+            Tente novamente mais tarde.
+          </div>
+        `;
+      }
+    };
+  </script>
 </body>
 </html>
