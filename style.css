@@ -61,7 +61,7 @@ label, select, input, button {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Update-state button style */
+/* Button state for update */
 #btn-search.update-state {
   font-style: italic;
   color: #d35400;
@@ -71,7 +71,9 @@ label, select, input, button {
 
 /* Resultado estático */
 #result .product-summary { text-align: center; margin-bottom: 1em; }
-#result .product-summary img { width: 100px; max-width: 100%; border-radius: 4px; margin-bottom: .5em; }
+#result .product-summary img {
+  width: 100px; max-width: 100%; border-radius: 4px; margin-bottom: .5em;
+}
 #result .product-summary h2 { font-size: 1.25em; margin: 0; }
 #result .summary { font-weight: bold; margin-bottom: 1em; }
 #result .card { border: 1px solid #ccc; border-radius: 4px; padding: 1em; margin-bottom: 1em; }
