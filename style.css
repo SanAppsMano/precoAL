@@ -106,28 +106,6 @@ label, select, input, button {
   border-radius: 4px;
 }
 
-/* Clear‑input button */
-.input-clear-wrapper {
-  position: relative;
-}
-.input-clear-wrapper input {
-  width: 100%;
-  padding-right: 2em; /* espaço para o X */
-}
-.clear-barcode {
-  position: absolute;
-  right: .5em;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
-  background: transparent;
-  font-size: 1.2em;
-  line-height: 1;
-  cursor: pointer;
-  color: #666;
-  display: none;
-}
-
 /* Mobile tweaks */
 @media (max-width: 600px) {
   body { margin: 1em; }
