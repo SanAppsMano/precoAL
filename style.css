@@ -4,6 +4,11 @@ body {
   margin: 2em auto;
 }
 
+h1 {
+  font-size: 1.75em;
+  margin-bottom: 1em;
+}
+
 label, select, input, button {
   display: block;
   width: 100%;
@@ -58,17 +63,25 @@ label, select, input, button {
   padding-top: 1em;
 }
 #history-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: .5em;
   list-style: none;
   padding: 0;
   margin: 0;
 }
 #history-list li {
-  padding: .3em 0;
+  width: 60px;
+  height: 60px;
+  overflow: hidden;
   cursor: pointer;
-  color: #0066cc;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
-#history-list li:hover {
-  text-decoration: underline;
+#history-list li img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 #clear-history {
   margin-top: .5em;
@@ -77,4 +90,58 @@ label, select, input, button {
   border: none;
   padding: .5em 1em;
   cursor: pointer;
+  border-radius: 4px;
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background: white;
+  padding: 1em;
+  border-radius: 8px;
+  width: 90%; max-width: 350px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  right: .5em; top: .2em;
+  font-size: 1.5em;
+  cursor: pointer;
+}
+.modal-content img {
+  width: 100%;
+  border-radius: 4px;
+  margin-bottom: .5em;
+}
+#modal-name {
+  margin: .5em 0;
+  font-size: 1.2em;
+  text-align: center;
+}
+#modal-cards .card {
+  margin: .5em 0;
+}
+
+/* Mobile-first tweaks */
+@media (max-width: 600px) {
+  body { margin: 1em; }
+  h1 { font-size: 1.5em; margin-bottom: .5em; }
+  label, select, input, button { padding: .75em; }
+  .card { padding: .75em; }
+  .card h2 { font-size: 1.1em; }
+  #history-list { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: .3em; }
+  #history-list li { width: 50px; height: 50px; }
+}
+@media (max-width: 400px) {
+  .modal-content { width: 100%; margin: 0 1em; }
 }
