@@ -23,11 +23,10 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Quagga2 Scanner
+  // Quagga2 Scanner setup
   let scanning = false;
   const quaggaConfig = {
-    inputStream: {
-      name: "Live", type: "LiveStream",
+    inputStream: { name: "Live", type: "LiveStream",
       target: document.querySelector('#interactive'),
       constraints: { facingMode: "environment" }
     },
@@ -71,12 +70,9 @@ window.addEventListener('DOMContentLoaded', () => {
     if (historyData.length > 20) historyData.pop();
     saveHistory(); renderHistory();
   }
-  btnClearHist.addEventListener('click', () => {
-    historyData = []; saveHistory(); renderHistory();
-  });
+  btnClearHist.addEventListener('click', () => { historyData = []; saveHistory(); renderHistory(); });
   ulHistory.addEventListener('click', e => {
-    const li = e.target.closest('li');
-    if (!li) return;
+    const li = e.target.closest('li'); if (!li) return;
     const item = historyData[li.dataset.index];
     barcodeIn.value = item.code;
     if (document.querySelector('input[name="loc"]:checked').value === 'city') {
@@ -85,7 +81,7 @@ window.addEventListener('DOMContentLoaded', () => {
     btnSearch.click();
   });
 
-  // Render result
+  // Render result with establishment name
   function renderResult({ productName, thumbnail, minEntry, maxEntry, total }) {
     const raio = document.querySelector('.radius-btn.active').dataset.value;
     let html = `
@@ -95,11 +91,11 @@ window.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="summary">${total} estabelecimento${total>1?'s':''}</div>
     `;
-    [["Menor Preço", minEntry], ["Maior Preço", maxEntry]].forEach(([label,e]) => {
-      const price     = label==="Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
-      const name      = e.nomFantasia || e.nomRazaoSocial || "—";
-      const bairro    = e.nomBairro || "—";
-      const municipio = e.nomMunicipio || "—";
+    [["Menor Preço", minEntry], ["Maior Preço", maxEntry]].forEach(([label, e]) => {
+      const price     = label === "Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
+      const name      = e.nomFantasia || e.nomRazaoSocial || "—";  // shows establishment name
+      const bairro    = e.nomBairro        || "—";
+      const municipio = e.nomMunicipio     || "—";
       const when      = e.dthEmissaoUltimaVenda
                          ? new Date(e.dthEmissaoUltimaVenda).toLocaleString()
                          : "—";
@@ -109,8 +105,9 @@ window.addEventListener('DOMContentLoaded', () => {
       html += `
         <div class="card">
           <h2>${label}</h2>
+          <p><strong>Estabelecimento:</strong> ${name}</p>
           <p><strong>Preço:</strong> R$ ${price.toFixed(2)}</p>
-          <p><strong>Raio:</strong> ${raio} km</p>
+          <p><strong>Raio:</strong> ${raio} km</p>
           <p><strong>Bairro/Município:</strong> ${bairro} / ${municipio}</p>
           <p><strong>Quando:</strong> ${when}</p>
           <p>
@@ -123,20 +120,17 @@ window.addEventListener('DOMContentLoaded', () => {
     resultDiv.scrollIntoView({ behavior: 'smooth' });
   }
 
-  // Main search function
+  // Main search
   const FN_URL = `${window.location.origin}/.netlify/functions/search`;
   btnSearch.addEventListener('click', () => {
     const code = barcodeIn.value.trim();
     if (!code) { alert("Informe ou escaneie o código!"); return; }
-
     const raio = parseInt(document.querySelector('.radius-btn.active').dataset.value, 10);
 
     if (document.querySelector('input[name="loc"]:checked').value === 'gps') {
       navigator.geolocation.getCurrentPosition(pos => {
         runSearch(code, pos.coords.latitude, pos.coords.longitude, raio);
-      }, () => {
-        alert("Não foi possível obter sua localização.");
-      });
+      }, () => alert("Não foi possível obter sua localização."));
     } else {
       const [lat, lng] = citySel.value.split(',').map(Number);
       runSearch(code, lat, lng, raio);
@@ -159,22 +153,15 @@ window.addEventListener('DOMContentLoaded', () => {
       if (!resp.ok || !data.length) {
         resultDiv.innerHTML = `<p class="error">Nenhum resultado.</p>`; return;
       }
-      const minE = data.reduce((a,b)=> b.valMinimoVendido<a.valMinimoVendido?b:a, data[0]);
-      const maxE = data.reduce((a,b)=> b.valMaximoVendido>a.valMaximoVendido?b:a, data[0]);
-      const item = {
-        code,
-        city: citySel.value,
-        productName: data[0].dscProduto || "—",
-        thumbnail: data[0].codGetin
-                    ? `https://cdn-cosmos.bluesoft.com.br/products/${data[0].codGetin}`
-                    : "https://via.placeholder.com/100",
-        minEntry: minE,
-        maxEntry: maxE,
-        total: data.length
-      };
+      const minE = data.reduce((a,b) => b.valMinimoVendido < a.valMinimoVendido ? b : a, data[0]);
+      const maxE = data.reduce((a,b) => b.valMaximoVendido > a.valMaximoVendido ? b : a, data[0]);
+      const item = { code, city: citySel.value, productName: data[0].dscProduto,
+                     thumbnail: data[0].codGetin
+                       ? `https://cdn-cosmos.bluesoft.com.br/products/${data[0].codGetin}`
+                       : "https://via.placeholder.com/100",
+                     minEntry: minE, maxEntry: maxE, total: data.length };
       renderResult(item);
-      loadHistory();
-      addToHistory(item);
+      loadHistory(); addToHistory(item);
     } catch (err) {
       console.error(err);
       resultDiv.innerHTML = `<p class="error">Falha de rede: ${err.message}</p>`;
@@ -182,6 +169,5 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // Initialize history
-  loadHistory();
-  renderHistory();
+  loadHistory(); renderHistory();
 });
