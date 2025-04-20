@@ -79,9 +79,7 @@
         timer.textContent = `Tempo: ${elapsed.toFixed(0)} ms`;
 
         if(!Array.isArray(data)||!data.length){
-          out.innerHTML = elapsed>MAX_WAIT
-            ? '<div class="message">Serviço demorou demais. Tente depois.</div>'
-            : '<div class="message">Nenhum resultado encontrado.</div>';
+          out.innerHTML = '<div class="message">Nenhum resultado encontrado.</div>';
           return;
         }
 
