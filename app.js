@@ -34,7 +34,6 @@ btnScan.addEventListener('click', () => {
     stopScanner();
   }
 });
-
 function stopScanner() {
   Quagga.offDetected();
   Quagga.stop();
@@ -43,25 +42,21 @@ function stopScanner() {
   document.querySelector('#interactive').innerHTML = "";
 }
 
-// ===== Histórico de buscas no localStorage =====
+// ===== Histórico de buscas via localStorage =====
 function loadHistory() {
   const raw = localStorage.getItem("searchHistory");
   return raw ? JSON.parse(raw) : [];
 }
-
 function saveHistory(arr) {
   localStorage.setItem("searchHistory", JSON.stringify(arr));
 }
-
 function addToHistory(entry) {
   const hist = loadHistory();
-  // remove duplicados iguais (mesmo code+city)
   const filtered = hist.filter(item => !(item.code === entry.code && item.city === entry.city));
   filtered.unshift(entry);
-  saveHistory(filtered.slice(0, 10)); // mantém até 10 itens
+  saveHistory(filtered.slice(0, 10));
   renderHistory();
 }
-
 function renderHistory() {
   const listEl = document.getElementById("history-list");
   const hist = loadHistory();
@@ -73,7 +68,6 @@ function renderHistory() {
     </li>`;
   }).join("");
 }
-
 document.getElementById("history-list").addEventListener("click", e => {
   if (e.target.tagName === "LI") {
     const code = e.target.dataset.code;
@@ -83,7 +77,6 @@ document.getElementById("history-list").addEventListener("click", e => {
     document.getElementById("btn-search").click();
   }
 });
-
 document.getElementById("clear-history").addEventListener("click", () => {
   localStorage.removeItem("searchHistory");
   renderHistory();
@@ -130,12 +123,12 @@ document.getElementById('btn-search').addEventListener('click', async () => {
       resDiv.innerHTML = `<p class="error">Erro ${resp.status}: ${data.error||JSON.stringify(data)}</p>`;
       return;
     }
-    if (!Array.isArray(data) || !data.length) {
+    if (!Array.isArray(data) || data.length === 0) {
       resDiv.innerHTML = `<p>Nenhum resultado encontrado.</p>`;
       return;
     }
 
-    // renderização dos resultados
+    // renderiza resultados
     const total    = data.length;
     const minEntry = data.reduce((a,b)=> b.valMinimoVendido < a.valMinimoVendido ? b : a, data[0]);
     const maxEntry = data.reduce((a,b)=> b.valMaximoVendido > a.valMaximoVendido ? b : a, data[0]);
@@ -143,8 +136,8 @@ document.getElementById('btn-search').addEventListener('click', async () => {
     let html = `<div class="summary">${total} estabelecimento${total>1?'s':''} encontrado${total>1?'s':''}</div>`;
     for (const [label,e] of [["Menor Preço", minEntry], ["Maior Preço", maxEntry]]) {
       const price  = label==="Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
-      const name   = e.nomFantasia || e.nomRazaoSocial || "—";
-      const bairro = e.nomBairro || "—";
+      const name   = e.nomFantasia||e.nomRazaoSocial||"—";
+      const bairro = e.nomBairro||"—";
       const mapL   = `https://www.google.com/maps/search/?api=1&query=${e.numLatitude},${e.numLongitude}`;
       const dirL   = `https://www.google.com/maps/dir/?api=1&destination=${e.numLatitude},${e.numLongitude}`;
       const imgUrl = e.codGetin ? `https://cdn-cosmos.bluesoft.com.br/products/${e.codGetin}` : "";
@@ -162,7 +155,8 @@ document.getElementById('btn-search').addEventListener('click', async () => {
           ${imgUrl?`<img src="${imgUrl}" alt="Imagem do produto"/>`:``}
         </div>`;
     }
-    // adiciona ao histórico
+
+    // adiciona ao histórico e exibe resultados
     addToHistory({ code, city, when: new Date().toISOString() });
     resDiv.innerHTML = html;
 
