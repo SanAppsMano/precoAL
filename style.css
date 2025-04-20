@@ -1,61 +1,87 @@
 body {
-    font-family: sans-serif;
-    max-width: 400px;
-    margin: 2em auto;
-  }
-  
-  label, select, input, button {
-    display: block;
-    width: 100%;
-    padding: .5em;
-    margin-bottom: .5em;
-    box-sizing: border-box;
-    font-size: 1em;
-  }
-  
-  #interactive {
-    position: relative;
-    width: 100%;
-    height: auto;
-    margin-bottom: .5em;
-  }
-  
-  #interactive video {
-    width: 100%;
-  }
-  
-  .summary {
-    font-weight: bold;
-    margin-bottom: 1em;
-  }
-  
-  .card {
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 1em;
-    margin-bottom: 1em;
-  }
-  
-  .card h2 {
-    margin: 0 0 .5em;
-  }
-  
-  .card p {
-    margin: .3em 0;
-  }
-  
-  .card img {
-    max-width: 100%;
-    margin-top: .5em;
-    display: block;
-  }
-  
-  .card a {
-    margin-right: .5em;
-    color: #0066cc;
-    text-decoration: none;
-  }
-  .error {
-    color: red;
-  }
-  
+  font-family: sans-serif;
+  max-width: 400px;
+  margin: 2em auto;
+}
+
+label, select, input, button {
+  display: block;
+  width: 100%;
+  padding: .5em;
+  margin-bottom: .5em;
+  box-sizing: border-box;
+  font-size: 1em;
+}
+
+#interactive {
+  position: relative;
+  width: 100%;
+  height: auto;
+  margin-bottom: .5em;
+}
+
+#interactive video {
+  width: 100%;
+}
+
+.summary {
+  font-weight: bold;
+  margin-bottom: 1em;
+}
+
+.card {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 1em;
+  margin-bottom: 1em;
+}
+
+.card h2 {
+  margin: 0 0 .5em;
+}
+
+.card p {
+  margin: .3em 0;
+}
+
+.card img {
+  max-width: 100%;
+  margin-top: .5em;
+  display: block;
+}
+
+.error {
+  color: red;
+}
+
+/* Histórico de buscas */
+#history {
+  margin-top: 2em;
+  border-top: 1px solid #ddd;
+  padding-top: 1em;
+}
+
+#history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#history-list li {
+  padding: .3em 0;
+  cursor: pointer;
+  color: #0066cc;
+}
+
+#history-list li:hover {
+  text-decoration: underline;
+}
+
+#clear-history {
+  margin-top: .5em;
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: .5em 1em;
+  cursor: pointer;
+}
