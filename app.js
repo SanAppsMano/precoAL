@@ -1,14 +1,29 @@
 window.addEventListener('DOMContentLoaded', () => {
-  // Referências
+  const locRadios    = document.querySelectorAll('input[name="loc"]');
+  const cityBlock    = document.getElementById('city-block');
+  const citySel      = document.getElementById('city');
+  const radiusBtns   = document.querySelectorAll('.radius-btn');
   const btnScan      = document.getElementById('btn-scan');
   const btnSearch    = document.getElementById('btn-search');
   const barcodeIn    = document.getElementById('barcode');
-  const citySel      = document.getElementById('city');
   const resultDiv    = document.getElementById('result');
   const ulHistory    = document.getElementById('history-list');
   const btnClearHist = document.getElementById('clear-history');
 
-  // === Scanner Quagga2 ===
+  // Toggle city selector vs GPS
+  locRadios.forEach(r => r.addEventListener('change', () => {
+    cityBlock.style.display = r.value === 'city' ? 'block' : 'none';
+  }));
+
+  // Radius buttons
+  radiusBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      radiusBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // Quagga2 Scanner
   let scanning = false;
   const quaggaConfig = {
     inputStream: {
@@ -22,30 +37,21 @@ window.addEventListener('DOMContentLoaded', () => {
   btnScan.addEventListener('click', () => {
     if (!scanning) {
       Quagga.init(quaggaConfig, err => {
-        if (err) { alert("Falha ao acessar a câmera."); return; }
-        Quagga.start();
-        scanning = true;
-        btnScan.textContent = "Parar Scanner";
+        if (err) { alert("Não foi possível acessar a câmera."); return; }
+        Quagga.start(); scanning = true; btnScan.textContent = "Parar Scanner";
       });
       Quagga.onDetected(d => {
         if (d.codeResult?.code) {
           barcodeIn.value = d.codeResult.code;
-          Quagga.stop();
-          scanning = false;
-          btnScan.textContent = "Iniciar Scanner";
+          Quagga.stop(); scanning = false; btnScan.textContent = "Iniciar Scanner";
         }
       });
     } else {
-      Quagga.stop();
-      scanning = false;
-      btnScan.textContent = "Iniciar Scanner";
+      Quagga.stop(); scanning = false; btnScan.textContent = "Iniciar Scanner";
     }
   });
 
-  // === Auto‑select ao focar o campo ===
-  barcodeIn.addEventListener('focus', () => barcodeIn.select());
-
-  // === Histórico via localStorage ===
+  // History management
   let historyData = [];
   function loadHistory() {
     const raw = localStorage.getItem("searchHistory");
@@ -56,34 +62,32 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   function renderHistory() {
     ulHistory.innerHTML = historyData.map((it, i) =>
-      `<li data-index="${i}">
-         <img src="${it.thumbnail||'https://via.placeholder.com/60'}" alt="${it.productName}">
-       </li>`
+      `<li data-index="${i}"><img src="${it.thumbnail||'https://via.placeholder.com/60'}" alt="${it.productName}"></li>`
     ).join('');
   }
   function addToHistory(item) {
     historyData = historyData.filter(i => !(i.code===item.code && i.city===item.city));
     historyData.unshift(item);
-    if (historyData.length>20) historyData.pop();
-    saveHistory();
-    renderHistory();
+    if (historyData.length > 20) historyData.pop();
+    saveHistory(); renderHistory();
   }
   btnClearHist.addEventListener('click', () => {
-    historyData = [];
-    saveHistory();
-    renderHistory();
+    historyData = []; saveHistory(); renderHistory();
   });
   ulHistory.addEventListener('click', e => {
     const li = e.target.closest('li');
     if (!li) return;
     const item = historyData[li.dataset.index];
     barcodeIn.value = item.code;
-    citySel.value    = item.city;
+    if (document.querySelector('input[name="loc"]:checked').value === 'city') {
+      citySel.value = item.city;
+    }
     btnSearch.click();
   });
 
-  // === Render de resultado ===
+  // Render result
   function renderResult({ productName, thumbnail, minEntry, maxEntry, total }) {
+    const raio = document.querySelector('.radius-btn.active').dataset.value;
     let html = `
       <div class="product-summary">
         <img src="${thumbnail}" alt="${productName}">
@@ -93,9 +97,9 @@ window.addEventListener('DOMContentLoaded', () => {
     `;
     [["Menor Preço", minEntry], ["Maior Preço", maxEntry]].forEach(([label,e]) => {
       const price     = label==="Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
-      const name      = e.nomFantasia||e.nomRazaoSocial||"—";
-      const bairro    = e.nomBairro||"—";
-      const municipio = e.nomMunicipio||"—";
+      const name      = e.nomFantasia || e.nomRazaoSocial || "—";
+      const bairro    = e.nomBairro || "—";
+      const municipio = e.nomMunicipio || "—";
       const when      = e.dthEmissaoUltimaVenda
                          ? new Date(e.dthEmissaoUltimaVenda).toLocaleString()
                          : "—";
@@ -106,7 +110,7 @@ window.addEventListener('DOMContentLoaded', () => {
         <div class="card">
           <h2>${label}</h2>
           <p><strong>Preço:</strong> R$ ${price.toFixed(2)}</p>
-          <p><strong>Estabelecimento:</strong> ${name}</p>
+          <p><strong>Raio:</strong> ${raio} km</p>
           <p><strong>Bairro/Município:</strong> ${bairro} / ${municipio}</p>
           <p><strong>Quando:</strong> ${when}</p>
           <p>
@@ -119,41 +123,55 @@ window.addEventListener('DOMContentLoaded', () => {
     resultDiv.scrollIntoView({ behavior: 'smooth' });
   }
 
-  // === Busca via Netlify Function ===
+  // Main search function
   const FN_URL = `${window.location.origin}/.netlify/functions/search`;
-  btnSearch.addEventListener('click', async () => {
+  btnSearch.addEventListener('click', () => {
     const code = barcodeIn.value.trim();
     if (!code) { alert("Informe ou escaneie o código!"); return; }
-    const city = citySel.value;
-    resultDiv.innerHTML = `<p>Buscando…</p>`;
 
+    const raio = parseInt(document.querySelector('.radius-btn.active').dataset.value, 10);
+
+    if (document.querySelector('input[name="loc"]:checked').value === 'gps') {
+      navigator.geolocation.getCurrentPosition(pos => {
+        runSearch(code, pos.coords.latitude, pos.coords.longitude, raio);
+      }, () => {
+        alert("Não foi possível obter sua localização.");
+      });
+    } else {
+      const [lat, lng] = citySel.value.split(',').map(Number);
+      runSearch(code, lat, lng, raio);
+    }
+  });
+
+  async function runSearch(code, latitude, longitude, raio) {
+    resultDiv.innerHTML = `<p>Buscando…</p>`;
     try {
       const resp = await fetch(FN_URL, {
         method: "POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ codigoDeBarras: code, city })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigoDeBarras: code, dias: 3, latitude, longitude, raio })
       });
       const text = await resp.text();
       if (!text.trim() || text.trim().startsWith("<")) {
-        resultDiv.innerHTML = `<p class="error">Erro ${resp.status}</p>`;
-        return;
+        resultDiv.innerHTML = `<p class="error">Erro ${resp.status}</p>`; return;
       }
       const data = JSON.parse(text);
-      if (!resp.ok || !Array.isArray(data)||data.length===0) {
-        resultDiv.innerHTML = `<p class="error">Nenhum resultado encontrado.</p>`;
-        return;
+      if (!resp.ok || !data.length) {
+        resultDiv.innerHTML = `<p class="error">Nenhum resultado.</p>`; return;
       }
-
-      const minEntry    = data.reduce((a,b)=> b.valMinimoVendido<a.valMinimoVendido?b:a, data[0]);
-      const maxEntry    = data.reduce((a,b)=> b.valMaximoVendido>a.valMaximoVendido?b:a, data[0]);
-      const productName = data[0].dscProduto || "—";
-      const thumbnail   = data[0].codGetin
-                          ? `https://cdn-cosmos.bluesoft.com.br/products/${data[0].codGetin}`
-                          : "https://via.placeholder.com/100";
-      const total       = data.length;
-
-      const item = { code, city, productName, thumbnail, minEntry, maxEntry, total };
-
+      const minE = data.reduce((a,b)=> b.valMinimoVendido<a.valMinimoVendido?b:a, data[0]);
+      const maxE = data.reduce((a,b)=> b.valMaximoVendido>a.valMaximoVendido?b:a, data[0]);
+      const item = {
+        code,
+        city: citySel.value,
+        productName: data[0].dscProduto || "—",
+        thumbnail: data[0].codGetin
+                    ? `https://cdn-cosmos.bluesoft.com.br/products/${data[0].codGetin}`
+                    : "https://via.placeholder.com/100",
+        minEntry: minE,
+        maxEntry: maxE,
+        total: data.length
+      };
       renderResult(item);
       loadHistory();
       addToHistory(item);
@@ -161,9 +179,9 @@ window.addEventListener('DOMContentLoaded', () => {
       console.error(err);
       resultDiv.innerHTML = `<p class="error">Falha de rede: ${err.message}</p>`;
     }
-  });
+  }
 
-  // Inicializa histórico
+  // Initialize history
   loadHistory();
   renderHistory();
 });
