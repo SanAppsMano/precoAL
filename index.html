@@ -2,58 +2,180 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Busca de Preço</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Busca por Código de Barras</title>
+  <style>
+    body { font-family: sans-serif; max-width:400px; margin:2em auto; }
+    label, select, input, button { display:block; width:100%; padding:.5em; margin-bottom:.5em; box-sizing:border-box; font-size:1em; }
+    #interactive { position:relative; width:100%; height:auto; margin-bottom:.5em; }
+    #interactive video { width:100%; }
+    .summary { font-weight:bold; margin-bottom:1em; }
+    .card { border:1px solid #ccc; border-radius:4px; padding:1em; margin-bottom:1em; }
+    .card h2 { margin:0 0 .5em; }
+    .card p { margin:.3em 0; }
+    .card img { max-width:100%; margin-top:.5em; display:block; }
+    .message { padding:1em; background:#fffae6; border:1px solid #ffd24d; border-radius:4px; margin-bottom:1em; }
+    #timer { font-size:.9em; color:#555; margin-bottom:.5em; }
+    /* Histórico */
+    #history { margin-top:2em; border-top:1px solid #ddd; padding-top:1em; }
+    #history-list { list-style:none; padding:0; margin:0; }
+    #history-list li { display:flex; align-items:center; padding:.3em 0; cursor:pointer; }
+    #history-list img { width:40px; height:40px; object-fit:cover; margin-right:.5em; border:1px solid #ccc; border-radius:4px; }
+    #clear-history { background:#f44336; color:white; border:none; padding:.5em; cursor:pointer; }
+  </style>
 </head>
 <body>
-  <h1>Busca de Preço</h1>
+  <h1>Buscar Preço por Escaneamento</h1>
 
-  <div class="location-choice">
-    <label><input type="radio" name="loc" value="city" checked> Escolher município</label>
-    <label><input type="radio" name="loc" value="gps"> Usar minha localização</label>
-  </div>
+  <button id="btn-scan">Iniciar Scanner</button>
+  <div id="interactive" class="viewport"></div>
 
-  <div id="city-block">
-    <label for="city">Município:</label>
-    <select id="city">
-      <option value="-9.6432331,-35.7190686">Maceió</option>
-      <option value="-9.751419,-36.659076">Arapiraca</option>
-      <option value="-9.407651,-36.300283">Palmeira dos Índios</option>
-    </select>
-  </div>
+  <input type="text" id="barcode" placeholder="Ou digite ou escaneie o código..." inputmode="numeric"/>
+  <button id="btn-search">Pesquisar Preço</button>
 
-  <label>Raio de busca:</label>
-  <div class="radius-control">
-    <button type="button" class="radius-btn" data-value="5">Perto<br><small>5 km</small></button>
-    <button type="button" class="radius-btn active" data-value="15">Médio<br><small>15 km</small></button>
-    <button type="button" class="radius-btn" data-value="30">Distante<br><small>30 km</small></button>
-  </div>
-
-  <button type="button" id="btn-scan">Iniciar Scanner</button>
-  <div id="interactive"></div>
-
-  <label for="barcode">Código de barras:</label>
-  <input
-    id="barcode"
-    type="search"
-    inputmode="numeric"
-    pattern="[0-9]*"
-    placeholder="Digite ou escaneie..."
-  />
-
-  <button type="button" id="btn-search">Pesquisar Preço</button>
-
+  <div id="timer"></div>
   <div id="result"></div>
 
-  <h2>Histórico de buscas</h2>
-  <div id="history">
+  <section id="history">
+    <h2>Histórico de buscas</h2>
     <ul id="history-list"></ul>
-    <button type="button" id="clear-history">Limpar histórico</button>
-  </div>
+    <button id="clear-history">Limpar histórico</button>
+  </section>
 
-  <!-- Quagga2 via CDN -->
-  <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
-  <script src="app.js" defer></script>
+  <script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js"></script>
+  <script>
+    const FN_URL   = '/.netlify/functions/search';
+    const MAX_WAIT = 10000;
+
+    // scanner
+    const btnScan     = document.getElementById('btn-scan');
+    const interactive = document.getElementById('interactive');
+    let scanning = false;
+
+    btnScan.onclick = () => scanning ? stopScanner() : startScanner();
+    function startScanner() {
+      Quagga.init({
+        inputStream:{ name:'Live', type:'LiveStream', target:interactive, constraints:{facingMode:'environment'} },
+        decoder:{ readers:['ean_reader','ean_8_reader','upc_reader','code_128_reader'] },
+        locate:true
+      }, err => {
+        if(err){ alert('Falha ao acessar câmera.'); return; }
+        Quagga.start();
+        scanning = true;
+        btnScan.textContent = 'Parar Scanner';
+      });
+      Quagga.onDetected(d => {
+        const code = d.codeResult && d.codeResult.code;
+        if(code){
+          document.getElementById('barcode').value = code;
+          stopScanner();
+        }
+      });
+    }
+    function stopScanner() {
+      Quagga.stop();
+      Quagga.offDetected();
+      scanning = false;
+      btnScan.textContent = 'Iniciar Scanner';
+      interactive.innerHTML = '';
+    }
+
+    // histórico
+    function loadHistory() {
+      const list = document.getElementById('history-list');
+      list.innerHTML = '';
+      const hist = JSON.parse(localStorage.getItem('history')||'[]');
+      hist.forEach((e,i) => {
+        const li = document.createElement('li');
+        const img = document.createElement('img');
+        img.src = e.thumb || '';
+        img.alt = e.name;
+        li.appendChild(img);
+        li.appendChild(document.createTextNode(e.name));
+        li.onclick = ()=> showEntry(e);
+        list.appendChild(li);
+      });
+    }
+    document.getElementById('clear-history').onclick = () => {
+      localStorage.removeItem('history');
+      loadHistory();
+    };
+
+    // busca
+    async function buscarPreco(barcode) {
+      const res = await fetch(FN_URL, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ codigoDeBarras:barcode, city:'' })
+      });
+      return res.json();
+    }
+
+    document.getElementById('btn-search').onclick = async () => {
+      const code  = document.getElementById('barcode').value.trim();
+      const out   = document.getElementById('result');
+      const timer = document.getElementById('timer');
+      out.innerHTML = ''; timer.textContent = '';
+      if(!code) return alert('Informe ou escaneie o código!');
+
+      const start = performance.now();
+      out.innerHTML = '<div class="message">Buscando…</div>';
+
+      try {
+        const data = await buscarPreco(code);
+        const elapsed = performance.now() - start;
+        timer.textContent = `Tempo: ${elapsed.toFixed(0)} ms`;
+
+        if(!Array.isArray(data) || !data.length) {
+          out.innerHTML = '<div class="message">Nenhum resultado encontrado.</div>';
+          return;
+        }
+
+        const minE = data.reduce((a,b)=>b.valMinimoVendido<a.valMinimoVendido?b:a, data[0]);
+        const maxE = data.reduce((a,b)=>b.valMaximoVendido>a.valMaximoVendido?b:a, data[0]);
+
+        function render(e,label) {
+          const p = (label==='Menor Preço'?e.valMinimoVendido:e.valMaximoVendido).toFixed(2);
+          const name = e.nomFantasia||e.nomRazaoSocial||'—';
+          const thumb = e.codGetin ? `https://cdn-cosmos.bluesoft.com.br/products/${e.codGetin}` : '';
+          return `
+            <div class="card">
+              <h2>${label}</h2>
+              <p><strong>Preço:</strong> R$ ${p}</p>
+              <p><strong>Estabelecimento:</strong> ${name}</p>
+              ${thumb?`<img src="${thumb}" alt="thumb">`:''}
+            </div>
+          `;
+        }
+
+        out.innerHTML = render(minE,'Menor Preço') + render(maxE,'Maior Preço');
+
+        // salva no histórico
+        const entry = {
+          name: minE.dscProduto||'Produto',
+          thumb: minE.codGetin?`https://cdn-cosmos.bluesoft.com.br/products/${minE.codGetin}`:'',
+          result: out.innerHTML
+        };
+        const hist = JSON.parse(localStorage.getItem('history')||'[]');
+        hist.unshift(entry);
+        localStorage.setItem('history', JSON.stringify(hist));
+        loadHistory();
+
+      } catch {
+        const elapsed = performance.now() - start;
+        timer.textContent = `Tempo: ${elapsed.toFixed(0)} ms`;
+        out.innerHTML = '<div class="message">Erro na busca. Tente novamente.</div>';
+      }
+    };
+
+    // mostrar histórico
+    function showEntry(e) {
+      document.getElementById('result').innerHTML = e.result;
+      document.getElementById('timer').textContent = '';
+    }
+
+    // init
+    loadHistory();
+  </script>
 </body>
 </html>
