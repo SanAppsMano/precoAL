@@ -1,7 +1,8 @@
 body {
   font-family: sans-serif;
   max-width: 400px;
-  margin: 2em auto;
+  margin: 1.5em auto;
+  padding: 0 1em;
 }
 
 h1 {
@@ -12,17 +13,53 @@ h1 {
 label, select, input, button {
   display: block;
   width: 100%;
-  padding: .5em;
-  margin-bottom: .5em;
+  margin-bottom: .75em;
   box-sizing: border-box;
   font-size: 1em;
+}
+
+.location-choice {
+  display: flex;
+  gap: 1em;
+  margin-bottom: .75em;
+}
+.location-choice label {
+  font-size: .9em;
+  cursor: pointer;
+}
+
+.radius-control {
+  display: flex;
+  gap: .5em;
+  margin-bottom: 1em;
+}
+.radius-btn {
+  flex: 1;
+  padding: .5em;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  text-align: center;
+  font-size: .9em;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.radius-btn small {
+  display: block;
+  font-size: .75em;
+  color: #555;
+}
+.radius-btn.active {
+  background: #0066cc;
+  color: white;
+  border-color: #005bb5;
 }
 
 #interactive {
   position: relative;
   width: 100%;
   height: auto;
-  margin-bottom: .5em;
+  margin-bottom: .75em;
 }
 #interactive video {
   width: 100%;
@@ -106,11 +143,18 @@ label, select, input, button {
   border-radius: 4px;
 }
 
+/* Hide city block when GPS selected */
+#city-block {
+  transition: opacity .3s;
+}
+
 /* Mobile tweaks */
 @media (max-width: 600px) {
   body { margin: 1em; }
   h1 { font-size: 1.5em; margin-bottom: .5em; }
   label, select, input, button { padding: .75em; }
+  .radius-btn { font-size: .85em; }
+  .radius-btn small { font-size: .7em; }
   #history-list {
     grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
     gap: .3em;
