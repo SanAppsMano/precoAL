@@ -4,7 +4,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const cityBlock = document.getElementById('city-block');
   const citySel = document.getElementById('city');
   const radiusBtns = document.querySelectorAll('.radius-btn');
-  const btnScan = document.getElementById('btn-scan');
   const btnSearch = document.getElementById('btn-search');
   const barcodeIn = document.getElementById('barcode');
   const resultDiv = document.getElementById('result');
@@ -23,31 +22,6 @@ window.addEventListener('DOMContentLoaded', () => {
       radiusBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
-  });
-
-  // Scanner setup
-  let scanning = false;
-  const quaggaConfig = {
-    inputStream: { name: "Live", type: "LiveStream", target: document.querySelector('#interactive'), constraints: { facingMode: "environment" } },
-    decoder: { readers: ["ean_reader"] },
-    locate: true
-  };
-
-  btnScan.addEventListener('click', () => {
-    if (!scanning) {
-      Quagga.init(quaggaConfig, err => {
-        if (err) { alert("Não foi possível acessar a câmera."); return; }
-        Quagga.start(); scanning = true; btnScan.textContent = "Parar Scanner";
-      });
-      Quagga.onDetected(d => {
-        if (d.codeResult?.code) {
-          barcodeIn.value = d.codeResult.code;
-          Quagga.stop(); scanning = false; btnScan.textContent = "Iniciar Scanner";
-        }
-      });
-    } else {
-      Quagga.stop(); scanning = false; btnScan.textContent = "Iniciar Scanner";
-    }
   });
 
   // History management (cached)
@@ -105,17 +79,14 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   async function runSearch(code, latitude, longitude, raio) {
-    // marca início da consulta
     const startTime = Date.now();
     try {
       const resp = await fetch(FN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigoDeBarras: code, dias: 3, latitude, longitude, raio })
+        body: JSON.stringify({ codigoDeBarras: code, dias: 2, latitude, longitude, raio })
       });
-
       const text = await resp.text();
-      // calcula tempo decorrido em ms
       const elapsed = Date.now() - startTime;
 
       if (!text.trim() || text.trim().startsWith("<")) {
@@ -127,7 +98,6 @@ window.addEventListener('DOMContentLoaded', () => {
       console.log("API retornou:", data);
 
       if (!resp.ok || data.length === 0) {
-        // mensagem padrão de timeout, exibindo o tempo gasto
         resultDiv.innerHTML = `
           <p class="error">
             Tempo de consulta excedeu o tempo limite (<strong>${elapsed} ms</strong>).<br>
