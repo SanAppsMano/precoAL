@@ -20,7 +20,14 @@
   <div id="interactive"></div>
 
   <label for="barcode">Código de barras:</label>
-  <input id="barcode" type="text" placeholder="Digite ou escaneie..." />
+  <!-- Aqui: inputmode numeric + pattern força o teclado numérico no mobile -->
+  <input
+    id="barcode"
+    type="tel"
+    inputmode="numeric"
+    pattern="[0-9]*"
+    placeholder="Digite ou escaneie..."
+  />
   <button id="btn-search">Pesquisar Preço</button>
 
   <div id="result"></div>
@@ -33,7 +40,6 @@
 
   <!-- Quagga2 via CDN -->
   <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
-  <!-- Seu script principal -->
   <script src="app.js"></script>
 </body>
 </html>
