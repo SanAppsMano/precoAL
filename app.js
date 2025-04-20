@@ -59,7 +59,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }).join("");
   }
   function addToHistory(item) {
-    // remove duplicado e adiciona no topo
     historyData = historyData.filter(i => !(i.code === item.code && i.city === item.city));
     historyData.unshift(item);
     if (historyData.length > 20) historyData.pop();
@@ -75,15 +74,13 @@ window.addEventListener('DOMContentLoaded', () => {
     const li = e.target.closest('li');
     if (!li) return;
     const item = historyData[li.dataset.index];
-    // refaz a busca
     barcodeIn.value = item.code;
     citySel.value   = item.city;
     btnSearch.click();
   });
 
-  // --- Função de render de resultado estático ---
+  // --- Render de resultado estático ---
   function renderResult({ productName, thumbnail, minEntry, maxEntry, total }) {
-    // Imagem e nome
     let html = `
       <div class="product-summary">
         <img src="${thumbnail}" alt="${productName}">
@@ -91,23 +88,23 @@ window.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="summary">${total} estabelecimento${total>1?'s':''}</div>
     `;
-    // Menor e maior preço
     [["Menor Preço", minEntry], ["Maior Preço", maxEntry]].forEach(([label, e]) => {
-      const price  = label==="Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
-      const name   = e.nomFantasia||e.nomRazaoSocial||"—";
-      const bairro = e.nomBairro||"—";
-      const when   = e.dthEmissaoUltimaVenda
-                     ? new Date(e.dthEmissaoUltimaVenda).toLocaleString()
-                     : "—";
-      const mapL   = `https://www.google.com/maps/search/?api=1&query=${e.numLatitude},${e.numLongitude}`;
-      const dirL   = `https://www.google.com/maps/dir/?api=1&destination=${e.numLatitude},${e.numLongitude}`;
+      const price      = label === "Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
+      const name       = e.nomFantasia || e.nomRazaoSocial || "—";
+      const bairro     = e.nomBairro      || "—";
+      const municipio  = e.nomMunicipio   || "—";            // <-- novo
+      const when       = e.dthEmissaoUltimaVenda
+                          ? new Date(e.dthEmissaoUltimaVenda).toLocaleString()
+                          : "—";
+      const mapL       = `https://www.google.com/maps/search/?api=1&query=${e.numLatitude},${e.numLongitude}`;
+      const dirL       = `https://www.google.com/maps/dir/?api=1&destination=${e.numLatitude},${e.numLongitude}`;
 
       html += `
         <div class="card">
           <h2>${label}</h2>
           <p><strong>Preço:</strong> R$ ${price.toFixed(2)}</p>
           <p><strong>Estabelecimento:</strong> ${name}</p>
-          <p><strong>Bairro:</strong> ${bairro}</p>
+          <p><strong>Bairro/Município:</strong> ${bairro} / ${municipio}</p>
           <p><strong>Quando:</strong> ${when}</p>
           <p>
             <a href="${mapL}" target="_blank">Ver no mapa</a> |
@@ -145,7 +142,6 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // calcula entradas
       const minEntry    = data.reduce((a,b)=> b.valMinimoVendido<a.valMinimoVendido?b:a, data[0]);
       const maxEntry    = data.reduce((a,b)=> b.valMaximoVendido>a.valMaximoVendido?b:a, data[0]);
       const productName = data[0].dscProduto || "—";
@@ -165,7 +161,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Inicializa histórico na primeira carga
+  // inicializa histórico
   loadHistory();
   renderHistory();
 });
