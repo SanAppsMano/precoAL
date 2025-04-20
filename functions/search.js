@@ -19,11 +19,28 @@ exports.handler = async (event) => {
 
   try {
     console.log("Parsing request body");
-    const { codigoDeBarras, city } = JSON.parse(event.body);
-    console.log("Parsed values:", { codigoDeBarras, city });
+    const {
+      codigoDeBarras,
+      latitude,
+      longitude,
+      dias = 3,
+      raio = 15
+    } = JSON.parse(event.body);
+    console.log("Parsed values:", { codigoDeBarras, latitude, longitude, dias, raio });
 
-    const [latitude, longitude] = city.split(",").map(Number);
-    console.log("Coordinates parsed:", { latitude, longitude });
+    // Validate required params
+    if (
+      typeof codigoDeBarras !== "string" ||
+      typeof latitude !== "number" ||
+      typeof longitude !== "number"
+    ) {
+      console.warn("Invalid parameters");
+      return {
+        statusCode: 400,
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ error: "Parâmetros inválidos" }),
+      };
+    }
 
     const apiUrl = "http://api.sefaz.al.gov.br/sfz_nfce_api/api/public/consultarPrecosPorCodigoDeBarras";
     console.log("Calling external API at:", apiUrl);
@@ -36,17 +53,17 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         codigoDeBarras,
-        dias: 3,
+        dias,
         latitude,
         longitude,
-        raio: 15,
+        raio,
       }),
     });
 
     console.log("External API response status:", resp.status, resp.statusText);
 
     const data = await resp.json();
-    console.log("External API returned data:", JSON.stringify(data));
+    console.log("External API returned data:", JSON.stringify(data).slice(0, 500) + "...");
 
     const statusCode = resp.ok ? 200 : resp.status;
     console.log("Returning status code:", statusCode);
