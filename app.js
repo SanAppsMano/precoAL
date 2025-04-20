@@ -34,7 +34,6 @@ btnScan.addEventListener('click', () => {
     stopScanner();
   }
 });
-
 function stopScanner() {
   Quagga.offDetected();
   Quagga.stop();
@@ -62,28 +61,20 @@ function renderHistory() {
   const listEl = document.getElementById("history-list");
   const hist = loadHistory();
   listEl.innerHTML = hist.map(item => {
-    const date    = new Date(item.when).toLocaleString("pt-BR");
-    const cityName= item.city.split(",")[1];
-    const thumb   = item.thumbnail
-      ? `<img src="${item.thumbnail}" class="history-thumb" alt="Thumb"/>`
-      : "";
     return `<li data-code="${item.code}" data-city="${item.city}">
-      ${thumb}${item.code} em ${cityName} (${date})
+      ${item.productName}
     </li>`;
   }).join("");
 }
-
 document.getElementById("history-list").addEventListener("click", e => {
-  if (e.target.tagName === "LI" || e.target.closest("li")) {
-    const li   = e.target.closest("li");
-    const code = li.dataset.code;
-    const city = li.dataset.city;
+  if (e.target.tagName === "LI") {
+    const code = e.target.dataset.code;
+    const city = e.target.dataset.city;
     barcodeInput.value = code;
     document.getElementById("city").value = city;
     document.getElementById("btn-search").click();
   }
 });
-
 document.getElementById("clear-history").addEventListener("click", () => {
   localStorage.removeItem("searchHistory");
   renderHistory();
@@ -94,7 +85,10 @@ const FN_URL = `${window.location.origin}/.netlify/functions/search`;
 
 document.getElementById('btn-search').addEventListener('click', async () => {
   const code = barcodeInput.value.trim();
-  if (!code) { alert("Informe ou escaneie o código de barras!"); return; }
+  if (!code) {
+    alert("Informe ou escaneie o código de barras!");
+    return;
+  }
 
   const city = document.getElementById('city').value;
   const resDiv = document.getElementById('result');
@@ -131,44 +125,41 @@ document.getElementById('btn-search').addEventListener('click', async () => {
       return;
     }
 
-    // renderização dos resultados
+    // Renderiza os resultados, incluindo nome do produto
     const total    = data.length;
     const minEntry = data.reduce((a,b)=> b.valMinimoVendido < a.valMinimoVendido ? b : a, data[0]);
     const maxEntry = data.reduce((a,b)=> b.valMaximoVendido > a.valMaximoVendido ? b : a, data[0]);
 
     let html = `<div class="summary">${total} estabelecimento${total>1?'s':''} encontrado${total>1?'s':''}</div>`;
     for (const [label,e] of [["Menor Preço", minEntry], ["Maior Preço", maxEntry]]) {
-      const price = label==="Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
-      const name  = e.nomFantasia||e.nomRazaoSocial||"—";
-      const bairro= e.nomBairro||"—";
-      const mapL  = `https://www.google.com/maps/search/?api=1&query=${e.numLatitude},${e.numLongitude}`;
-      const dirL  = `https://www.google.com/maps/dir/?api=1&destination=${e.numLatitude},${e.numLongitude}`;
-      const thumb = e.codGetin 
-        ? `https://cdn-cosmos.bluesoft.com.br/products/${e.codGetin}` 
-        : "";
+      const price       = label==="Menor Preço" ? e.valMinimoVendido : e.valMaximoVendido;
+      const name        = e.nomFantasia || e.nomRazaoSocial || "—";
+      const productName = e.dscProduto || "—";
+      const bairro      = e.nomBairro || "—";
+      const mapL        = `https://www.google.com/maps/search/?api=1&query=${e.numLatitude},${e.numLongitude}`;
+      const dirL        = `https://www.google.com/maps/dir/?api=1&destination=${e.numLatitude},${e.numLongitude}`;
+      const imgUrl      = e.codGetin ? `https://cdn-cosmos.bluesoft.com.br/products/${e.codGetin}` : "";
 
       html += `
         <div class="card">
-          <h2>${label}</h2>
-          <p><strong>Preço:</strong> R$ ${price.toFixed(2)}</p>
+          <h2>${productName}</h2>
+          <p><strong>${label}:</strong> R$ ${price.toFixed(2)}</p>
           <p><strong>Estabelecimento:</strong> ${name}</p>
           <p><strong>Bairro:</strong> ${bairro}</p>
           <p>
             <a href="${mapL}" target="_blank">Ver no mapa</a>
             <a href="${dirL}" target="_blank">Como chegar</a>
           </p>
-          ${thumb?`<img src="${thumb}" alt="Imagem do produto" />`:``}
+          ${imgUrl?`<img src="${imgUrl}" alt="Imagem do produto" />`:``}
         </div>`;
     }
 
-    // adiciona miniatura do primeiro item ao histórico
+    // adiciona ao histórico com productName para exibir depois
     addToHistory({
       code,
       city,
       when: new Date().toISOString(),
-      thumbnail: data[0].codGetin
-        ? `https://cdn-cosmos.bluesoft.com.br/products/${data[0].codGetin}`
-        : ""
+      productName: data[0].dscProduto || "—"
     });
 
     resDiv.innerHTML = html;
@@ -179,5 +170,5 @@ document.getElementById('btn-search').addEventListener('click', async () => {
   }
 });
 
-// renderiza o histórico ao iniciar
+// Renderiza o histórico ao iniciar a página
 renderHistory();
