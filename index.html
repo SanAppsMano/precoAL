@@ -1,110 +1,59 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Busca por Código de Barras</title>
-  <style>
-    body { font-family: sans-serif; max-width: 400px; margin: 2em auto; }
-    button, input, select { width: 100%; padding: .5em; margin-bottom: .5em; box-sizing: border-box; font-size:1em; }
-    #interactive { position: relative; width: 100%; height: auto; overflow: hidden; margin-bottom: .5em; }
-    #interactive video { width: 100%; }
-    .message { padding:1em; background:#fffae6; border:1px solid #ffd24d; border-radius:4px; margin-bottom:1em; }
-    .card { border:1px solid #ccc; border-radius:4px; padding:1em; margin-bottom:1em; }
-    .card img { max-width:100%; margin-top:.5em; display:block; }
-  </style>
+  <title>Busca de Preço</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Buscar Preço por Escaneamento</h1>
+  <h1>Busca de Preço</h1>
 
-  <button id="btn-scan">Iniciar Scanner</button>
-  <div id="interactive" class="viewport"></div>
+  <div class="location-choice">
+    <label><input type="radio" name="loc" value="city" checked> Escolher município</label>
+    <label><input type="radio" name="loc" value="gps"> Usar minha localização</label>
+  </div>
 
-  <input type="text" id="barcode" placeholder="Ou digite ou escaneie o código de barras..." inputmode="numeric" />
-  <button id="btn-search">Pesquisar Preço</button>
+  <div id="city-block">
+    <label for="city">Município:</label>
+    <select id="city">
+      <option value="-9.6432331,-35.7190686">Maceió</option>
+      <option value="-9.751419,-36.659076">Arapiraca</option>
+      <option value="-9.407651,-36.300283">Palmeira dos Índios</option>
+    </select>
+  </div>
 
-  <div id="timer"></div>
+  <label>Raio de busca:</label>
+  <div class="radius-control">
+    <button type="button" class="radius-btn" data-value="5">Perto<br><small>5 km</small></button>
+    <button type="button" class="radius-btn active" data-value="15">Médio<br><small>15 km</small></button>
+    <button type="button" class="radius-btn" data-value="30">Distante<br><small>30 km</small></button>
+  </div>
+
+  <button type="button" id="btn-scan">Iniciar Scanner</button>
+  <div id="interactive"></div>
+
+  <label for="barcode">Código de barras:</label>
+  <input
+    id="barcode"
+    type="search"
+    inputmode="numeric"
+    pattern="[0-9]*"
+    placeholder="Digite ou escaneie..."
+  />
+
+  <button type="button" id="btn-search">Pesquisar Preço</button>
+
   <div id="result"></div>
 
-  <script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js"></script>
-  <script>
-    const FN_URL = '/.netlify/functions/search';
-    const MAX_WAIT = 10000; // 10s
+  <h2>Histórico de buscas</h2>
+  <div id="history">
+    <ul id="history-list"></ul>
+    <button type="button" id="clear-history">Limpar histórico</button>
+  </div>
 
-    // Scanner
-    const btnScan = document.getElementById('btn-scan');
-    const interactive = document.getElementById('interactive');
-    let scanning = false;
-    function startScanner() {
-      Quagga.init({
-        inputStream: { name:'Live', type:'LiveStream', target:interactive, constraints:{ facingMode:'environment' } },
-        decoder: { readers:['ean_reader','ean_8_reader','upc_reader','code_128_reader'] },    
-        locate:true
-      }, err => {
-        if(err){ alert('Falha ao acessar câmera.'); return; }
-        Quagga.start(); scanning = true; btnScan.textContent='Parar Scanner';
-      });
-      Quagga.onDetected(d=>{
-        const code = d.codeResult && d.codeResult.code;
-        if(code){
-          document.getElementById('barcode').value = code;
-          stopScanner();
-        }
-      });
-    }
-    function stopScanner(){ Quagga.stop(); Quagga.offDetected(); scanning=false; btnScan.textContent='Iniciar Scanner'; interactive.innerHTML=''; }
-    btnScan.onclick = ()=> scanning? stopScanner(): startScanner();
-
-    // Busca
-    async function buscarPreco(barcode){
-      const resp = await fetch(FN_URL, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ codigoDeBarras:barcode, city:document.getElementById('city')?.value||'' })
-      });
-      return resp.json();
-    }
-
-    document.getElementById('btn-search').onclick = async ()=>{
-      const code = document.getElementById('barcode').value.trim();
-      const out = document.getElementById('result');
-      const timer = document.getElementById('timer');
-      out.innerHTML=''; timer.textContent='';
-      if(!code) return alert('Informe ou escaneie o código!');
-
-      const start = performance.now();
-      out.innerHTML = '<div class="message">Buscando… aguarde.</div>';
-      try{
-        const data = await buscarPreco(code);
-        const elapsed = performance.now()-start;
-        timer.textContent = `Tempo: ${elapsed.toFixed(0)} ms`;
-
-        if(!Array.isArray(data)||!data.length){
-          out.innerHTML = '<div class="message">Nenhum resultado encontrado.</div>';
-          return;
-        }
-
-        const minE = data.reduce((a,b)=>b.valMinimoVendido<a.valMinimoVendido?b:a,data[0]);
-        const maxE = data.reduce((a,b)=>b.valMaximoVendido>a.valMaximoVendido?b:a,data[0]);
-        out.innerHTML = ['Menor Preço','Maior Preço'].map(label=>{
-          const e = label==='Menor Preço'?minE:maxE;
-          const p = label==='Menor Preço'?e.valMinimoVendido:e.valMaximoVendido;
-          const name = e.nomFantasia||e.nomRazaoSocial||'—';
-          const lat=e.numLatitude, lng=e.numLongitude;
-          return `
-            <div class="card">
-              <h2>${label}</h2>
-              <p><strong>Preço:</strong> R$${p.toFixed(2)}</p>
-              <p><strong>Estab.:</strong> ${name}</p>
-              <p><a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank">Ver mapa</a></p>
-            </div>
-          `;
-        }).join('');
-      }catch(err){
-        const elapsed = performance.now()-start;
-        timer.textContent = `Tempo: ${elapsed.toFixed(0)} ms`;
-        out.innerHTML = '<div class="message">Erro ou demora excessiva. Tente mais tarde.</div>';
-      }
-    };
-  </script>
+  <!-- Quagga2 via CDN -->
+  <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
