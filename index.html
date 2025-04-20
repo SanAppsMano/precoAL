@@ -20,14 +20,17 @@
   <div id="interactive"></div>
 
   <label for="barcode">Código de barras:</label>
-  <!-- Aqui: inputmode numeric + pattern força o teclado numérico no mobile -->
-  <input
-    id="barcode"
-    type="tel"
-    inputmode="numeric"
-    pattern="[0-9]*"
-    placeholder="Digite ou escaneie..."
-  />
+  <div class="input-clear-wrapper">
+    <input
+      id="barcode"
+      type="tel"
+      inputmode="numeric"
+      pattern="[0-9]*"
+      placeholder="Digite ou escaneie..."
+    />
+    <button type="button" id="clear-barcode" class="clear-barcode" aria-label="Limpar campo">&times;</button>
+  </div>
+
   <button id="btn-search">Pesquisar Preço</button>
 
   <div id="result"></div>
