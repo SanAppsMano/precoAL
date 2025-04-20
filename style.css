@@ -19,7 +19,9 @@ label, select, input, button {
   height: auto;
   margin-bottom: .5em;
 }
-#interactive video { width: 100%; }
+#interactive video {
+  width: 100%;
+}
 
 .summary {
   font-weight: bold;
@@ -34,10 +36,20 @@ label, select, input, button {
 }
 .card h2 { margin: 0 0 .5em; }
 .card p { margin: .3em 0; }
-.card img { max-width: 100%; margin-top: .5em; display: block; }
-.card a { margin-right: .5em; color: #0066cc; text-decoration: none; }
+.card img {
+  max-width: 100%;
+  margin-top: .5em;
+  display: block;
+}
+.card a {
+  margin-right: .5em;
+  color: #0066cc;
+  text-decoration: none;
+}
 
-.error { color: red; }
+.error {
+  color: red;
+}
 
 /* Histórico de buscas */
 #history {
@@ -45,31 +57,19 @@ label, select, input, button {
   border-top: 1px solid #ddd;
   padding-top: 1em;
 }
-
 #history-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-
 #history-list li {
-  display: flex;
-  align-items: center;
   padding: .3em 0;
   cursor: pointer;
   color: #0066cc;
 }
-
-#history-list li:hover { text-decoration: underline; }
-
-.history-thumb {
-  width: 40px;
-  height: auto;
-  margin-right: .5em;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+#history-list li:hover {
+  text-decoration: underline;
 }
-
 #clear-history {
   margin-top: .5em;
   background: #f44336;
