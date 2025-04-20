@@ -25,12 +25,22 @@
 
   <label>Raio de busca:</label>
   <div class="radius-control">
-    <button type="button" class="radius-btn" data-value="5">Perto<br><small>5 km</small></button>
-    <button type="button" class="radius-btn active" data-value="15">Padrão<br><small>15 km</small></button>
+    <button type="button" class="radius-btn" data-value="5">Perto<br><small>5 km</small></button>
+    <button type="button" class="radius-btn active" data-value="15">Médio<br><small>15 km</small></button>
+    <button type="button" class="radius-btn" data-value="30">Distante<br><small>30 km</small></button>
   </div>
 
+  <button type="button" id="btn-scan">Iniciar Scanner</button>
+  <div id="interactive"></div>
+
   <label for="barcode">Código de barras:</label>
-  <input id="barcode" type="search" inputmode="numeric" pattern="[0-9]*" placeholder="Digite ou escaneie..." />
+  <input
+    id="barcode"
+    type="search"
+    inputmode="numeric"
+    pattern="[0-9]*"
+    placeholder="Digite ou escaneie..."
+  />
 
   <button type="button" id="btn-search">Pesquisar Preço</button>
 
@@ -48,6 +58,8 @@
     <button type="button" id="clear-history">Limpar histórico</button>
   </div>
 
+  <!-- Quagga2 via CDN -->
+  <script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
   <script src="app.js" defer></script>
 </body>
 </html>
