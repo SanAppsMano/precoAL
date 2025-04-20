@@ -1,3 +1,7 @@
+[build]
+  publish = "."
+  functions = "functions"
+
 [functions]
+  # Aumenta timeout de 10s (padrão) para 30s para lidar com latências da API
   timeout = 30
-  directory = "functions"
